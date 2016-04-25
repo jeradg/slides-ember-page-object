@@ -61,3 +61,9 @@ $selectionBackgroundColor: $magenta;
 // Theme template ------------------------------
 @import "../template/theme";
 // ---------------------------------------------
+
+// More stuff ------------------------------
+.small {
+  @extend small;
+}
+// ---------------------------------------------
