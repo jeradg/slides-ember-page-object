@@ -40,7 +40,7 @@
 
 			<!-- Any section element inside of this container is displayed as a slide -->
 			<div class="slides">
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 # Page Objects
 
@@ -52,17 +52,41 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Start with an example
+### The default way
 
-- Some company's site
-- Beeper company (Betty's Beepers) (beeper = PAGE OBJECT HAHAHA)
+```js
+test('some test', function(assert) {
+  // ... some usual acceptance tests
+});
+```
+
+Notes:
+
 - (Example tests: they work, demonstrate a user flow, but are opaque as to meaning (not artificially so!), wet, and fragile.)
+          </aside>
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+### But then, integration tests
+
+```js
+test('some test', function(assert) {
+  // ... some integration tests
+});
+```
+
+Notes:
+
+- (Example tests: they work, demonstrate a user flow, but are opaque as to meaning (not artificially so!), wet, and fragile.)
+          </aside>
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### Problem 1: Hard to read
 
@@ -73,7 +97,7 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### Detour: Why do we write tests?
 
@@ -90,7 +114,7 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### Problem 2: Hard to maintain
 
@@ -100,7 +124,7 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### In Ember, we have another problem
 
@@ -109,7 +133,7 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### Enter Page Objects
 
@@ -119,19 +143,19 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 - From Selenium team: "The benefit is that if the UI changes for the page, the tests themselves don’t need to change, only the code within the page object needs to change. Subsequently all changes to support that new UI are located in one place."
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 - Martin Fowler: "When you write tests against a web page, you need to refer to elements within that web page in order to click links and determine what's displayed. However, if you write tests that manipulate the HTML elements directly your tests will be brittle to changes in the UI. A page object wraps an HTML page, or fragment, with an application-specific API, allowing you to manipulate page elements without digging around in the HTML."
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### Solution 1: Easier to read and understand
 
@@ -140,7 +164,7 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### Solution 2: Easier to maintain
 
@@ -148,7 +172,7 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 - [According to science](http://ieeexplore.ieee.org/xpl/login.jsp?tp=&arnumber=6571616&url=http%3A%2F%2Fieeexplore.ieee.org%2Fxpls%2Fabs_all.jsp%3Farnumber%3D6571616), page objects can make test updating 3x faster when changing UI code. (SCIENCE IS DUBIOUS! THIS IS HALF A JOKE!!!)
 
@@ -156,7 +180,7 @@
           </script>
 				</section>
 
-				<section data-markdown>
+				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### Fin
 
