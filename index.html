@@ -44,10 +44,11 @@
           <script type="text/template">
 # Page Objects
 
-### Some quick thoughts<br> on making it easier to test in Ember
+### A short talk on testing with<br> Ember CLI Page Object
 
+<br>
 <small>
-  [Jerad Gallinger](http://jeradgallinger.ca) / [@jeradg](http://twitter.com/jeradg)
+  [Jerad Gallinger](http://jeradgallinger.ca) ([@jeradg](http://twitter.com/jeradg))
 </small>
 
 <small>
@@ -66,25 +67,68 @@
           <script type="text/template">
 By default,
 
-## Testing in Ember is not that bad
+## Testing in Ember is pretty darn good
 
 Notes:
 
 - Some very smart people have spent a lot of time to make the testing experience smooth.
 - Acceptance and integration testing tools
+- (Not going to talk about unit testing)
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+### A login form on the homepage
+
+```hbs
+<!-- app/templates/login.hbs -->
+
+<h1>Please log in using this contrived example</h1>
+
+{{login-form
+  username = username
+  password = password
+  errors   = errors
+  submit   = (action "submit")
+}}
+```
+
+```hbs
+<!-- app/templates/components/login-form.hbs -->
+
+{{input value=username type="text" class="test__login-form__username"}}
+{{input value=password type="password" class="test__login-form__password"}}
+
+<button type="button" class="test__login-form__submit" {{action submit}}>
+  Submit
+</button>
+
+{{#if errors}}
+  <ul class="test__login-form__errors">
+    {{#each errors as |error|}}
+      <li>{{error.message}}</li>
+    {{/errors}}
+  </ul>
+{{/if}}
+```
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+Ember has
+
 ### Handy acceptance test helpers
 
 ```js
+// tests/acceptance/login-test.js
+
 test('logs in sucessfully', function(assert) {
   visit('/login');
-  fillIn('#username', 'admin');
-  fillIn('#password', 'secret');
-  click('button');
+  fillIn('.test__login-form__username', 'user');
+  fillIn('.test__login-form__password', 'secret');
+  click('.test__login-form__submit');
 
   andThen(function() {
     assert.equal(currentURL(), '/private-page');
@@ -94,6 +138,7 @@ test('logs in sucessfully', function(assert) {
 
 Notes:
 
+- async-aware
 - visit()
 - fillIn()
 - click()
@@ -107,11 +152,11 @@ Notes:
 A bit less handy, but not bad
 
 ```js
-test('calls submit action with correct username and password', function(assert) {
-  assert.expect(2);
+// tests/integration/components/login-form-test.js
 
+test('calls submit with username and password', function(assert) {
   function submit(username, password) {
-    assert.equal(username, 'admin');
+    assert.equal(username, 'user');
     assert.equal(password, 'secret');
   }
 
@@ -123,10 +168,10 @@ test('calls submit action with correct username and password', function(assert) 
     }}
   `);
 
-  $username = this.$('#username');
-  $password = this.$('#password');
+  $username = this.$('.test__login-form__username');
+  $password = this.$('.test__login-form__password');
 
-  $username.val('admin');
+  $username.val('user');
   $username.trigger('input');
   $username.change();
 
@@ -134,13 +179,14 @@ test('calls submit action with correct username and password', function(assert) 
   $password.trigger('input');
   $password.change();
 
-  this.$('button').click();
+  this.$('.test__login-form__submit').click();
 });
 ```
 
 Notes:
 
-- A bit more verbose, and you need to use jQuery, but it gets the job done.
+- Not so async-aware, but they get the job done.
+- A bit more verbose, and you need to use jQuery (which isn't so bad).
 - What we're testing is similar, but different API...
 - Need to write different code to mostly do the same thing.
 - (Grand testing unification is probably coming, but still a ways away.)
@@ -153,7 +199,7 @@ Notes:
 
 Notes:
 
-- Sure, you could test an app this way.
+- Sure, you could test an app this way. Lots of people do.
           </script>
 				</section>
 
@@ -176,73 +222,144 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-## Acceptance Tests
+## Not very DRY
 
 ```js
+// tests/acceptance/login-test.js
+
 test('logs in sucessfully', function(assert) {
   visit('/login');
-  fillIn('#username', 'admin');
-  fillIn('#password', 'secret');
-  click('button');
+  fillIn('.test__login-form__username', 'user');
+  fillIn('.test__login-form__password', 'secret');
+  click('.test__login-form__submit');
 
   andThen(function() {
     assert.equal(currentURL(), '/private-page');
   });
 });
 
+// ...
+```
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+## Look familiar?
+
+```js
+// tests/acceptance/login-test.js
+
+// ...
+
 test('shows an error when password is wrong', function(assert) {
   visit('/login');
-  fillIn('#username', 'admin');
-  fillIn('#password', 'invalid');
-  click('button');
+  fillIn('.test__login-form__username', 'user');
+  fillIn('.test__login-form__password', 'invalid');
+  click('.test__login-form__submit');
 
   andThen(function() {
     assert.equal(currentURL(), '/login');
-    assert.equal($.trim(find('.errors').text()), 'Invalid credentials');
+    assert.equal(find('.test__login-form__errors').text().trim(), 'Invalid credentials');
   });
 });
 ```
 
 Notes:
 
-Suppose we have a couple of acceptance tests to test the login page of our site.
-
-We want to convert these tests to use a page object.
+(*Flip back and forth with previous slide to show how similar they are.*)
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### But then, we want to use the component elsewhere and make sure it's still wired up properly
+### What if you want to use the component elsewhere?
 
-```js
-test('some test', function(assert) {
-  // ... some repeated acceptance test code
-});
+```hbs
+<!-- app/templates/admin-login.hbs -->
+
+<h1>Log in as an admin in this other contrived example</h1>
+
+{{login-form
+  username = username
+  password = password
+  errors   = errors
+  submit   = (action "submit")
+}}
 ```
 
-Notes:
-
-- Well, now we're just plain old repeating ourselves.
-- Selectors, users flows, etc., etc.
+- That's why we write components, after all -- for reuse.
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### And god help you when you have all these repeated selectors and you need to change them during a refactor or something
+### Super, super not DRY
 
 ```js
-test('some test', function(assert) {
-  // ... some repeated acceptance test code
+// tests/acceptance/admin-login-test.js
+
+test('logs in as an admin', function(assert) {
+  visit('/admin-login');
+  fillIn('.test__login-form__username', 'admin');
+  fillIn('.test__login-form__password', 'super_secret');
+  click('.test__login-form__submit');
+
+  andThen(function() {
+    assert.equal(currentURL(), '/some-admin-page');
+  });
 });
 ```
 
 Notes:
 
-- Time-consuming
-- Error-prone
-- There's got to be a better way!
+- Look at all those repeated selector strings and helper calls.
+- We don't like to repeat ourselves in our app code.
+- So why do it in our tests?
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+## Don't forget component tests!
+
+*Which don't even fit on the slide*
+
+```js
+// tests/integration/components/login-form-test.js
+
+test('calls submit with username and password', function(assert) {
+  function submit(username, password) {
+    assert.equal(username, 'user');
+    assert.equal(password, 'secret');
+  }
+
+  this.set('submit', submit);
+
+  this.render(hbs`
+    {{login-form
+      submit=(action submit)
+    }}
+  `);
+
+  $username = this.$('.test__login-form__username');
+  $password = this.$('.test__login-form__password');
+
+  $username.val('user');
+  $username.trigger('input');
+  $username.change();
+
+  $password.val('secret');
+  $password.trigger('input');
+  $password.change();
+
+  this.$('.test__login-form__submit').click();
+});
+```
+
+Notes:
+
+- Selectors, users flows, etc., etc., get repeated all over the place
           </script>
 				</section>
 
@@ -250,10 +367,23 @@ Notes:
           <script type="text/template">
 ### Problem 1: Hard to read
 
-- Most tests are hard to read.
+- Most non-trivial tests are hard to read.
+- Naming conventions like BEM help clarity, but can be verbose.
+- Component tests can be especially long.
+
+Most importantly:
+
+- **The form of a test can obscure what we're actually testing.**
+- We're not supposed to be testing that an element with a particular class does something when you click on it.
+- We're testing that **a user can do** something on the page (or with the component).
+
+Notes:
+
+- Hard to read.
+- Difficult to quickly scan and see what's going on.
+- Especially if you're not the person who wrote the test in the first place.
 - CAN YOU read them? Sure. But it requires some mental decoding.
-- Even if you use something like BEM to keep class names clear... (`click('.beeper-list__beeper__tone-type')`)
-- What does that mean? The form of tests obscures what we are really trying to test.
+- *****Example????????????????*****
           </script>
 				</section>
 
@@ -261,9 +391,15 @@ Notes:
           <script type="text/template">
 ### Problem 2: Hard to maintain
 
-- Maintaining tests can be tedious.
-- Selectors, URLs, and model names are likely to change over the life of a project.
-- Yet they're often repeated throughout tests, making for a frequent game of find-and-replace.
+- Annoying to write.
+- Typo-prone.
+- A huge pain to change an element, CSS class, URL (which you'll have to at some point!)
+
+Notes:
+
+- Annoying to type those class names again and again
+- Can lead to hard-to-spot bugs when you have a typo in a string class name, somewhere amidst a thousand other nearly-identical class names
+- Refactoring is a fact of life -- why make it harder?
           </script>
 				</section>
 
@@ -271,11 +407,63 @@ Notes:
           <script type="text/template">
 ### In Ember, we have another problem
 
-- Inconsistent APIs between Acceptance tests and Integration tests
-- (To be fixed in the medium-term with Grand Testing Unification, but for the forseeable future this is a real issue)
+Inconsistent APIs between Acceptance tests and Integration tests
+
+Notes:
+
+- To be fixed in the medium-term with Grand Testing Unification
+- But for the forseeable future this is a real issue
           </script>
 				</section>
 
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+### This...
+
+```js
+// tests/acceptance/login-test.js
+
+fillIn('.test__login-form__username', 'user');
+fillIn('.test__login-form__password', 'secret');
+click('.test__login-form__submit');
+```
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+### ...tests the same user behaviour as this
+
+```js
+// tests/integration/components/login-form-test.js
+
+$username = this.$('.test__login-form__username');
+$password = this.$('.test__login-form__password');
+
+$username.val('user');
+$username.trigger('input');
+$username.change();
+
+$password.val('secret');
+$password.trigger('input');
+$password.change();
+
+this.$('.test__login-form__submit').click();
+```
+
+Notes:
+
+- Selectors, users flows, etc., etc., get repeated all over the place
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+### So what's a test-writer to do?
+          </script>
+				</section>
+
+<!--
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ### So wait a second...
@@ -302,6 +490,7 @@ Why do we write tests?
 - But when we write a test that is against a particular selector, is it obvious/clear what user behavior/state/business logic we're testing?
           </script>
 				</section>
+-->
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
@@ -318,9 +507,9 @@ Notes:
           <script type="text/template">
 ### What is a Page Object?
 
-- UI tests: We're actually testing a user's interaction with a page (or set of pages) in our app.
-- A Page Object gives us an API for tests based on what a user of an app can (see) and do.
-- Encapsulates your test logic.
+- A model of the semantic structure of a page and the ways a user can interact with it.
+- A Page Object gives us an API for tests based on what a user can do on a page.
+- Encapsulates your test logic -- if you need to change the UI implementation, you only need to update your tests in one place.
 
 Notes:
 
@@ -335,11 +524,13 @@ Notes:
 ## Acceptance Test 1
 
 ```js
+// tests/acceptance/login-test.js
+
 test('logs in sucessfully', function(assert) {
   visit('/login');
-  fillIn('#username', 'admin');
-  fillIn('#password', 'secret');
-  click('button');
+  fillIn('.test__login-form__username', 'user');
+  fillIn('.test__login-form__password', 'secret');
+  click('.test__login-form__submit');
 
   andThen(function() {
     assert.equal(currentURL(), '/private-page');
@@ -357,21 +548,15 @@ We want to convert these tests to use a page object.
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-## Acceptance Test 2
+### Grab the addon
 
-```js
-test('shows an error when password is wrong', function(assert) {
-  visit('/login');
-  fillIn('#username', 'admin');
-  fillIn('#password', 'invalid');
-  click('button');
-
-  andThen(function() {
-    assert.equal(currentURL(), '/login');
-    assert.equal($.trim(find('.errors').text()), 'Invalid credentials');
-  });
-});
+```bash
+$ ember install ember-cli-page-object
 ```
+
+Notes:
+
+First, install the ember-cli-page-object addon.
           </script>
 				</section>
 
@@ -388,39 +573,67 @@ installing
 
 Notes:
 
-First, we need to create a new page object. For this we'll use one of the generators that comes with the addon.
+Then, use one of the handy generators to create your page object.
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ```js
-import PageObject, {
-  clickable,
-  fillable,
-  text,
+// tests/pages/login.js
+
+import {
+  create,
   visitable
-} from 'frontend/tests/page-object';
+} from 'ember-cli-page-object';
 
-export default PageObject.create({
-  visit: visitable('/'),
-
-  username: fillable('#username'),
-  password: fillable('#password'),
-  submit: clickable('button'),
-  error: text('.errors')
+export default create({
+  visit: visitable('/')
 });
 ```
 
 Notes:
 
-The generator created a file inside the directory `/tests/pages`. Let&rsqo;s describe the login page structure on our new page object.
+The generator created a file inside the directory `/tests/pages`.
+
+*** DESCRIBE WHAT'S IN IT??????? ***
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ```js
+// tests/pages/login.js
+
+import {
+  create,
+  clickable,
+  fillable,
+  text,
+  visitable
+} from 'ember-cli-page-object';
+
+export default create({
+  visit: visitable('/login'),
+
+  username: fillable('.test__login-form__username'),
+  password: fillable('.test__login-form__password'),
+  submit: clickable('.test__login-form__submit'),
+  errors: text('.test__login-form__errors')
+});
+```
+
+Notes:
+
+- Let's describe the login page structure on our new page object.
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+```js
+// tests/acceptance/login-test.js
+
 import page from 'frontend/tests/pages/login';
 
 // ...
@@ -428,7 +641,7 @@ import page from 'frontend/tests/pages/login';
 test('logs in sucessfully', function(assert) {
   page
     .visit()
-    .username('admin')
+    .username('user')
     .password('secret')
     .submit();
 
@@ -436,52 +649,59 @@ test('logs in sucessfully', function(assert) {
     assert.equal(currentURL(), '/private-page');
   });
 });
-
-test('shows an error when password is wrong', function(assert) {
-  page
-    .visit()
-    .username('admin')
-    .password('invalid')
-    .submit();
-
-  andThen(function() {
-    assert.equal(page.error, 'Invalid credentials');
-  });
-});
 ```
 
 Notes:
 
-Now we include the page object in the test and replace the existing test helpers with the page object's methods and properties.
+- Now we include the page object in the test and replace the existing test helpers with the page object's methods and properties.
+- Actions are chainable.
+- Under the hood, delegates to Ember's async-aware test helpers.
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ```js
-import PageObject, {
-  clickable,
-  fillable,
-  text,
-  visitable
-} from 'frontend/tests/page-object';
+test('shows an error when password is wrong', function(assert) {
+  page
+    .visit()
+    .username('user')
+    .password('invalid')
+    .submit();
 
-export default PageObject.create({
-  visit: visitable('/'),
+  andThen(function() {
+    assert.equal(page.errors, 'Invalid credentials');
+  });
+});
+```
 
-  username: fillable('#username'),
-  password: fillable('#password'),
-  submit: clickable('button'),
-  error: text('.errors'),
+Notes:
 
-  loginSuccessfully() {
-    return this.username('admin')
+- Let's do the same thing with our error test.
+- Looks pretty good
+- But could be dryer! Still repeating a lot.
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+```js
+// tests/pages/login.js
+
+// ...
+
+export default create({
+
+  // ...
+
+  submitWithSuccess() {
+    return this.username('user')
       .password('secret')
       .submit();
   },
 
-  loginFailed() {
-    return this.username('admin')
+  submitWithError() {
+    return this.username('user')
       .password('invalid')
       .submit();
   }
@@ -497,9 +717,11 @@ We can go a step further and describe the steps of the test using a higher level
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
 ```js
+// tests/acceptance/login-test.js
+
 test('logs in sucessfully', function(assert) {
   page.visit()
-    .loginSuccessfully();
+    .submitWithSuccess();
 
   andThen(function() {
     assert.equal(currentURL(), '/private-page');
@@ -508,10 +730,10 @@ test('logs in sucessfully', function(assert) {
 
 test('shows an error when password is wrong', function(assert) {
   page.visit()
-    .loginFailed();
+    .submitWithError();
 
   andThen(function() {
-    assert.equal(page.error, 'Invalid credentials');
+    assert.equal(page.errors, 'Invalid credentials');
   });
 });
 ```
@@ -534,122 +756,12 @@ We've made a page object for our login page. Now let's use the same page object 
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-```js
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-
-moduleForComponent('login-form', 'Integration | login form', {
-  integration: true
-});
-
-test('calls submit action with correct username and password', function(assert) {
-  assert.expect(2);
-
-  function submit(username, password) {
-    assert.equal(username, 'admin');
-    assert.equal(password, 'secret');
-  }
-
-  this.set('submit', submit);
-
-  this.render(hbs`
-    {{login-form
-      submit=(action submit)
-    }}
-  `);
-
-  $username = this.$('#username');
-  $password = this.$('#password');
-
-  $username.val('admin');
-  $username.trigger('input');
-  $username.change();
-
-  $password.val('secret');
-  $password.trigger('input');
-  $password.change();
-
-  this.$('button').click();
-});
-
-test('shows errors', function(assert) {
-  assert.expect(2);
-
-  this.set('errors', []);
-
-  this.render(hbs`
-    {{login-form
-      errors=errors
-    }}
-  `);
-
-  assert.equal(this.$('.errors').trim().text()), '');
-
-  Ember.run(() => {
-    this.set('errors', ['Invalid credentials']);
-  });
-
-  assert.equal(this.$('.errors').trim().text()), 'Invalid credentials');
-});
-```
-
-Notes:
-
-Here are our integration tests before using a page object.
-          </script>
-				</section>
-
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-## New feature! Hot shit!
+A *tiny* bit of boilerplate:
 
 ```js
-import PageObject, {
-  clickable,
-  fillable,
-  text,
-  visitable
-} from 'frontend/tests/page-object';
+// tests/integration/components/login-form-test.js
 
-export default PageObject.create({
-  visit: visitable('/'),
-
-  username: fillable('#username'),
-  password: fillable('#password'),
-  submit: clickable('button'),
-  error: text('.errors'),
-
-  loginSuccessfully() {
-    return this.username('admin')
-      .password('secret')
-      .submit();
-  },
-
-  loginFailed() {
-    return this.username('admin')
-      .password('invalid')
-      .submit();
-  }
-});
-```
-
-Notes:
-
-New feature! Hot shit!
-
-Let's use our existing page object to refactor these integration tests. As a reminder, here is our page object. (We don't need to change anything to use it in our integration tests!)
-          </script>
-				</section>
-
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-```js
-import { moduleForComponent, test } from 'ember-qunit';
-import hbs from 'htmlbars-inline-precompile';
-
-import page from 'frontend/tests/pages/login';
-
-moduleForComponent('login-form', 'Integration | login form', {
+moduleForComponent('login-form', 'Integration | Component | login form', {
   integration: true,
 
   beforeEach() {
@@ -660,111 +772,50 @@ moduleForComponent('login-form', 'Integration | login form', {
     page.removeContext();
   }
 });
-
-test('calls submit action with correct username and password', function(assert) {
-  assert.expect(2);
-
-  function submit(username, password) {
-    assert.equal(username, 'admin');
-    assert.equal(password, 'secret');
-  }
-
-  this.set('submit', submit);
-
-  page.render(hbs`
-      {{login-form
-        submit=(action submit)
-      }}
-    `)
-    .username('admin')
-    .password('secret')
-    .submit();
-});
-
-test('shows errors', function(assert) {
-  assert.expect(2);
-
-  this.set('error', '');
-
-  page.render(hbs`
-    {{login-form
-      error=error
-    }}
-  `);
-
-  assert.equal(page.error, '');
-
-  Ember.run(() => {
-    this.set('error', 'Invalid credentials');
-  });
-
-  assert.equal(page.error, 'Invalid credentials');
-});
 ```
 
 Notes:
 
-Let's set up our test to use the page object we created.
-          </script>
-				</section>
+New feature! Hot shit!
 
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-Let's take a look at the changes:
-
-- A *tiny* bit of boilerplate:
-  ```js
-  moduleForComponent('login-form', 'Integration | login form', {
-    integration: true,
-
-    beforeEach() {
-      page.setContext(this);
-    },
-
-    afterEach() {
-      page.removeContext();
-    }
-  });
-  ```
-- Change `this.render()` to `page.render()`. (`page.render()` is chainable.)
-
-And that's it!
-
-Notes:
+Let's use our existing page object to refactor these integration tests. As a reminder, here is our page object. (We don't need to change anything to use it in our integration tests!)
 
 - In the test's `beforeEach()` hook we set the page's test context with `page.setContext(this)`. That tells the page object to use the test's `this.$()` to find elements, instead of Ember's global acceptance test helpers.
 - In the `afterEach()` hook, we call `page.removeContext()` to clear the test context from the page object.
-- We change `this.render()` to `page.render()`. `page.render()` delegates to the test's `this.render()`, but it returns the page object so you can chain other page object methods onto it.
-- The rest of the changes are the same as in our acceptance tests: After you set the test's `this` context on the page object, you can use the page object as before. (The one exception is `page.visit()`, which doesn't work in component tests since we don't have access to a router.)
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-DRY things up a bit.
-
 ```js
-test('calls submit action with correct username and password', function(assert) {
-  assert.expect(2);
+// tests/integration/components/login-form-test.js
 
+test('calls submit with username and password', function(assert) {
   function submit(username, password) {
-    assert.equal(username, 'admin');
+    assert.equal(username, 'user');
     assert.equal(password, 'secret');
   }
 
   this.set('submit', submit);
 
-  page.render(hbs`
-      {{login-form
-        submit=(action submit)
-      }}
-    `)
-    .loginSuccessfully();
+  page.render(hbs`{{login-form submit=(action submit)}}`)
+    .submitWithSuccess();
 });
 ```
+
 Notes:
 
-As in our acceptance tests, we can DRY things up a bit more by grouping actions together into methods that describe specific user flows. For example, in the first test we can use our `page.loginSuccessfully()` method to eliminate a few lines of code:
+- Change `this.render()` to `page.render()`.
+- `page.render()` delegates to the test's `this.render()`, but returns the page object so you can chain other page object methods onto it.
+- The rest of the changes are the same as in our acceptance tests.
+          </script>
+				</section>
+
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+## And that's it!
+
+Notes:
 
 And that's it! Our integration and acceptance tests are cleaner, more maintainable and easier to read.
           </script>
@@ -772,24 +823,16 @@ And that's it! Our integration and acceptance tests are cleaner, more maintainab
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Solution 1: Easier to read and understand
+### Easier to read and understand
 
 - Makes the connection between test & user story/business logic clear.
-- Someone new to the test (or app code) can easily scan the test and understand what behaviour is being tested.
-          </script>
-				</section>
+- Someone new can easily see what user behaviour is being tested.
 
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-### Solution 2: Easier to maintain
+### Easier to maintain
 
 - Page Objects make tests DRYer and more maintainable by decoupling the content of tests from the implementation details of the app.
-          </script>
-				</section>
 
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-### Solution 3: Consistent testing API between acceptance and component tests
+### More consistent API for acceptance and component tests
           </script>
 				</section>
 
@@ -834,10 +877,11 @@ And that's it! Our integration and acceptance tests are cleaner, more maintainab
 			// Full list of configuration options available at:
 			// https://github.com/hakimel/reveal.js#configuration
 			Reveal.initialize({
-				controls: true,
+				controls: false,
 				progress: true,
 				history: true,
 				center: true,
+        slideNumber: true,
 
 				transition: 'slide', // none/fade/slide/convex/concave/zoom
 
