@@ -4,7 +4,7 @@
 	<head>
 		<meta charset="utf-8">
 
-		<title>reveal.js – The HTML Presentation Framework</title>
+		<title>Testing with Page Objects in Ember.js</title>
 
 		<meta name="description" content="A framework for easily creating beautiful presentations using HTML">
 		<meta name="author" content="Hakim El Hattab">
@@ -42,9 +42,9 @@
 			<div class="slides">
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-# Page Objects
+### A short talk on testing with
 
-### A short talk on testing with<br> Ember CLI Page Object
+# Ember CLI Page Object
 
 <br>
 <small>
@@ -59,15 +59,12 @@
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Part I
-          </script>
-				</section>
+## Part I
+<br>
 
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
 By default,
 
-## Testing in Ember is pretty darn good
+### Testing in Ember is pretty darn good
 
 Notes:
 
@@ -77,10 +74,33 @@ Notes:
           </script>
 				</section>
 
+				<section class="page-object-talk__demo">
+          <p>
+            <small><em>For example, this login form</em></small>
+          </p>
+
+          <form>
+            <hr>
+            <br>
+
+            <h4 class="page-object-talk__demo__heading">Please log in using this contrived example</h4>
+
+            <div>
+              <input placeholder="username" type="text" class="test__login-form__username">
+            </div>
+
+            <div>
+              <input placeholder="password" type="password" class="test__login-form__password">
+            </div>
+
+            <button type="button" class="test__login-form__submit">
+              Submit
+            </button>
+          </form>
+				</section>
+
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### A login form on the homepage
-
 ```hbs
 <!-- app/templates/login.hbs -->
 
@@ -138,10 +158,7 @@ test('logs in sucessfully', function(assert) {
 
 Notes:
 
-- async-aware
-- visit()
-- fillIn()
-- click()
+- Let's test that a user can log in successfully.
           </script>
 				</section>
 
@@ -150,7 +167,11 @@ Notes:
 ### Component integration tests
 
 A bit less handy, but not bad
+          </script>
+				</section>
 
+				<section class="page-object-talk__code--tall" data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
 ```js
 // tests/integration/components/login-form-test.js
 
@@ -162,11 +183,7 @@ test('calls submit with username and password', function(assert) {
 
   this.set('submit', submit);
 
-  this.render(hbs`
-    {{login-form
-      submit=(action submit)
-    }}
-  `);
+  this.render(hbs`{{login-form submit=(action submit)}}`);
 
   $username = this.$('.test__login-form__username');
   $password = this.$('.test__login-form__password');
@@ -187,9 +204,6 @@ Notes:
 
 - Not so async-aware, but they get the job done.
 - A bit more verbose, and you need to use jQuery (which isn't so bad).
-- What we're testing is similar, but different API...
-- Need to write different code to mostly do the same thing.
-- (Grand testing unification is probably coming, but still a ways away.)
           </script>
 				</section>
 
@@ -199,21 +213,18 @@ Notes:
 
 Notes:
 
-- Sure, you could test an app this way. Lots of people do.
+- You can test an app this way. Lots of people do.
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Part II
-          </script>
-				</section>
+## Part II
+<br>
 
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
 When you're writing a non-trivial app or addon,
 
-## The limitations become clear
+### The limitations become clear
 
 Notes:
 
@@ -245,7 +256,7 @@ test('logs in sucessfully', function(assert) {
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-## Look familiar?
+Look familiar?
 
 ```js
 // tests/acceptance/login-test.js
@@ -259,8 +270,10 @@ test('shows an error when password is wrong', function(assert) {
   click('.test__login-form__submit');
 
   andThen(function() {
+    const errorText = find('.test__login-form__errors').text().trim();
+
     assert.equal(currentURL(), '/login');
-    assert.equal(find('.test__login-form__errors').text().trim(), 'Invalid credentials');
+    assert.equal(errorText, 'Invalid credentials');
   });
 });
 ```
@@ -273,7 +286,7 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### What if you want to use the component elsewhere?
+### What if you want to use the component on another page?
 
 ```hbs
 <!-- app/templates/admin-login.hbs -->
@@ -288,13 +301,13 @@ Notes:
 }}
 ```
 
-- That's why we write components, after all -- for reuse.
+That's why we write components, after all &ndash; for reuse.
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Super, super not DRY
+Super, super not DRY
 
 ```js
 // tests/acceptance/admin-login-test.js
@@ -321,10 +334,12 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-## Don't forget component tests!
+### Don't forget component tests!
+          </script>
+				</section>
 
-*Which don't even fit on the slide*
-
+				<section class="page-object-talk__code--tall" data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
 ```js
 // tests/integration/components/login-form-test.js
 
@@ -336,11 +351,7 @@ test('calls submit with username and password', function(assert) {
 
   this.set('submit', submit);
 
-  this.render(hbs`
-    {{login-form
-      submit=(action submit)
-    }}
-  `);
+  this.render(hbs`{{login-form submit=(action submit)}}`);
 
   $username = this.$('.test__login-form__username');
   $password = this.$('.test__login-form__password');
@@ -360,18 +371,25 @@ test('calls submit with username and password', function(assert) {
 Notes:
 
 - Selectors, users flows, etc., etc., get repeated all over the place
+- Much less easy to read
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Problem 1: Hard to read
+### Problems
+          </script>
+				</section>
 
-- Most non-trivial tests are hard to read.
+				<section data-markdown data-separator-notes="^Notes:">
+          <script type="text/template">
+### Tests can be hard to read
+
 - Naming conventions like BEM help clarity, but can be verbose.
 - Component tests can be especially long.
 
-Most importantly:
+<br>
+*More importantly*
 
 - **The form of a test can obscure what we're actually testing.**
 - We're not supposed to be testing that an element with a particular class does something when you click on it.
@@ -389,17 +407,17 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Problem 2: Hard to maintain
+### Tests can be hard to maintain
 
-- Annoying to write.
-- Typo-prone.
-- A huge pain to change an element, CSS class, URL (which you'll have to at some point!)
+- Not DRY
+- Typo-prone
+- A huge pain to change an element, CSS class, or URL that's repeated across tests (which you'll have to at some point!)
 
 Notes:
 
 - Annoying to type those class names again and again
 - Can lead to hard-to-spot bugs when you have a typo in a string class name, somewhere amidst a thousand other nearly-identical class names
-- Refactoring is a fact of life -- why make it harder?
+- Refactoring is a fact of life &ndash; why make it harder?
           </script>
 				</section>
 
@@ -453,7 +471,8 @@ this.$('.test__login-form__submit').click();
 
 Notes:
 
-- Selectors, users flows, etc., etc., get repeated all over the place
+- We need different setup for acceptance and component tests.
+- But why does the code defining the user flow need to be different?
           </script>
 				</section>
 
@@ -463,40 +482,14 @@ Notes:
           </script>
 				</section>
 
-<!--
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### So wait a second...
-          </script>
-				</section>
+## Part III
+<br>
 
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-Why do we write tests?
-          </script>
-				</section>
+Let's model the UI using
 
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-- What are we really trying to test?
-- We're not really testing classes, IDs or HTML elements.
-- (We're testing "business logic".)
-- In TDD + Agile:
-  - We're testing that a user story is reflected in reality.
-  - If the story says "A user can visit a beeper detail page from the beeper list," we want to know that, YES, a user who visits the beeper list can view a particular beeper's details.
-- Business logic
-  - How users use a page (/flow)
-  - What the result of their page use should be
-- But when we write a test that is against a particular selector, is it obvious/clear what user behavior/state/business logic we're testing?
-          </script>
-				</section>
--->
-
-				<section data-markdown data-separator-notes="^Notes:">
-          <script type="text/template">
-### Part III
-
-## Enter Page Objects
+### Page Objects
 
 Notes:
 
@@ -507,9 +500,12 @@ Notes:
           <script type="text/template">
 ### What is a Page Object?
 
-- A model of the semantic structure of a page and the ways a user can interact with it.
-- A Page Object gives us an API for tests based on what a user can do on a page.
-- Encapsulates your test logic -- if you need to change the UI implementation, you only need to update your tests in one place.
+- A model of:
+    - The **semantic structure** of a page
+    - Possible **user interactions** with it
+- A testing API based on **what a user can do**, **not** a page's specific implementation.
+- **Encapsulates test logic**
+    - Changing implementations? You only need to update tests in one place!
 
 Notes:
 
@@ -521,7 +517,7 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-## Acceptance Test 1
+### Let's update our acceptance test
 
 ```js
 // tests/acceptance/login-test.js
@@ -579,6 +575,8 @@ Then, use one of the handy generators to create your page object.
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+This is what the page-object blueprint generates
+
 ```js
 // tests/pages/login.js
 
@@ -602,6 +600,8 @@ The generator created a file inside the directory `/tests/pages`.
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+Add actions and properties to model our login page
+
 ```js
 // tests/pages/login.js
 
@@ -631,6 +631,8 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+Update the test to use our new page object
+
 ```js
 // tests/acceptance/login-test.js
 
@@ -661,6 +663,8 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+Update the error test too
+
 ```js
 test('shows an error when password is wrong', function(assert) {
   page
@@ -685,6 +689,8 @@ Notes:
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+Let's make the tests even DRYer!
+
 ```js
 // tests/pages/login.js
 
@@ -716,6 +722,8 @@ We can go a step further and describe the steps of the test using a higher level
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+Short, clear, DRY
+
 ```js
 // tests/acceptance/login-test.js
 
@@ -756,7 +764,9 @@ We've made a page object for our login page. Now let's use the same page object 
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-A *tiny* bit of boilerplate:
+A *tiny* bit of boilerplate<br>
+to make the page object aware of the<br>
+integration test's `this` context
 
 ```js
 // tests/integration/components/login-form-test.js
@@ -776,7 +786,7 @@ moduleForComponent('login-form', 'Integration | Component | login form', {
 
 Notes:
 
-New feature! Hot shit!
+New feature!
 
 Let's use our existing page object to refactor these integration tests. As a reminder, here is our page object. (We don't need to change anything to use it in our integration tests!)
 
@@ -787,10 +797,14 @@ Let's use our existing page object to refactor these integration tests. As a rem
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
+We can use the same page object!
+
 ```js
 // tests/integration/components/login-form-test.js
 
 test('calls submit with username and password', function(assert) {
+  assert.expect(2);
+
   function submit(username, password) {
     assert.equal(username, 'user');
     assert.equal(password, 'secret');
@@ -817,22 +831,24 @@ Notes:
 
 Notes:
 
-And that's it! Our integration and acceptance tests are cleaner, more maintainable and easier to read.
+- And that's it! Our integration and acceptance tests are cleaner, more maintainable and easier to read.
+
+- Simple example, but the benefits are even more clear with more complex user flows.
           </script>
 				</section>
 
 				<section data-markdown data-separator-notes="^Notes:">
           <script type="text/template">
-### Easier to read and understand
+### With Page Objects our tests are...
 
-- Makes the connection between test & user story/business logic clear.
-- Someone new can easily see what user behaviour is being tested.
+- **Easier to read and understand**
+    - Clear connection between test logic and user flow
 
-### Easier to maintain
+- **Easier to maintain**
+    - DRYer (and shorter)
+    - Content of tests decoupled from the implementation details of the app
 
-- Page Objects make tests DRYer and more maintainable by decoupling the content of tests from the implementation details of the app.
-
-### More consistent API for acceptance and component tests
+- **More consistent** between acceptance and component tests
           </script>
 				</section>
 
